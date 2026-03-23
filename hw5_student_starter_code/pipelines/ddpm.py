@@ -74,7 +74,7 @@ class DDPMPipeline:
         if classes is not None:
             # convert classes to tensor
             if isinstance(classes, int):
-                classes = [classes] * batch_size
+                classes = torch.tensor([classes] * batch_size, device=device)
             elif isinstance(classes, list):
                 assert len(classes) == batch_size, "Length of classes must be equal to batch_size"
                 classes = torch.tensor(classes, device=device)
