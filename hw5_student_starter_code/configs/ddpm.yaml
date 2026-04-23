@@ -1,6 +1,6 @@
 run_name: ddpm
 seed: 42
-data_dir: ../data/imagenet100_128x128/imagenet100_128x128/train
+data_dir: "data_dir: ../data/imagenet100_128x128/imagenet100_128x128/train"
 image_size: 128
 
 batch_size: 2
