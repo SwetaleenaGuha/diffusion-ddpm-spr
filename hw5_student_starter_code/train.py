@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 from torchvision import datasets, transforms
 from torchvision.utils import make_grid
-from torch.utils.data import DataLoader , Subset
+from torch.utils.data import DataLoader, Subset
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -33,7 +33,12 @@ def parse_args():
     parser.add_argument("--config", type=str, default='configs/ddpm.yaml', help="config file used to specify parameters")
 
     # data
-    parser.add_argument("--data_dir", type=str, default='./data/imagenet100_128x128/imagenet100_128x128/train', help="data folder")
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default=r"C:\Users\SWETALEENA\Desktop\CMU\Spring 2026\IDL\Diffusion-Project\hw5_starter_code\data\imagenet100_128x128\imagenet100_128x128\train",
+        help="data folder"
+    )
     parser.add_argument("--image_size", type=int, default=128, help="image size")
     parser.add_argument("--batch_size", type=int, default=4, help="per gpu batch size")
     parser.add_argument("--num_workers", type=int, default=8, help="batch size")
@@ -141,6 +146,7 @@ def main():
         transform=transform
     )
     train_dataset = Subset(train_dataset_full, range(500))
+
     # setup dataloader
     sampler = None
     if args.distributed:
@@ -286,11 +292,9 @@ def main():
 
     # start tracker
     if is_primary(args):
-        wandb_logger = wandb.init(
-            project='ddpm',
-            name=args.run_name,
-            config=vars(args)
-        )
+        wandb_logger = None
+    else:
+        wandb_logger = None
 
     # Start training
     if is_primary(args):
@@ -395,12 +399,13 @@ def main():
             # logger
             if step % 100 == 0 and is_primary(args):
                 logger.info(f"Epoch {epoch + 1}/{args.num_epochs}, Step {step}/{num_update_steps_per_epoch}, Loss {loss.item()} ({loss_m.avg})")
-                wandb_logger.log({
-                    'loss': loss_m.avg,
-                    'lr': optimizer.param_groups[0]['lr'],
-                    'epoch': epoch,
-                    'global_step': global_step
-                })
+                if wandb_logger is not None:
+                    wandb_logger.log({
+                        'loss': loss_m.avg,
+                        'lr': optimizer.param_groups[0]['lr'],
+                        'epoch': epoch,
+                        'global_step': global_step
+                    })
 
         # validation
         unet.eval()
@@ -439,10 +444,12 @@ def main():
 
         # Send to wandb
         if is_primary(args):
-            wandb_logger.log({'gen_images': wandb.Image(grid_image)})
-            
-            # SAVE IMAGE (IMPORTANT)
+            if wandb_logger is not None:
+                 wandb_logger.log({'gen_images': wandb.Image(grid_image)})
+
+            # SAVE IMAGE
             grid_image.save(os.path.join(output_dir, f"sample_epoch_{epoch}.png"))
+
         # save checkpoint
         if is_primary(args):
             save_checkpoint(
